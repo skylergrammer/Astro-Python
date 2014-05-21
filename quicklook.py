@@ -31,7 +31,7 @@ def plot_spectrum(spectrum, wave, header, color='r'):
   plt.plot(wave,spectrum, ls='-', color=color)
   plt.xlim(min(wave),max(wave))
   plt.ylim(min(spectrum), max(spectrum))
-  plt.xlabel('Wavelength (Angstroms)', fontsize=24)
+  plt.xlabel('$\lambda$ ($\AA$)', fontsize=24)
   #plt.ylabel('Counts', fontsize=24)
   plt.title(header['object'], fontsize=30)
  
@@ -47,7 +47,7 @@ def get_spectrum(filename):
 
   
   lambda1 = header['crval1']
-  lambda2 = np.round(len(spectrum)*header['cdelt1']+header['crval1'])
+  lambda2 = float(header['naxis1'])*header['cdelt1']+float(header['crval1'])
 
   wave = np.arange(lambda1, lambda2, header['cdelt1'])
   wave = wave[:len(spectrum)]
@@ -100,16 +100,15 @@ def smooth(spectrum, kernel=0):
   return spectrum
 
 
-
 parser = argparse.ArgumentParser(description='An easy way to view a 1D, single extension, spectrum.  Will not work on .ms.fits files.')
 parser.add_argument('input', metavar='input', nargs='+', type=str, help='Filename of single spectrum or list of spectra.')
-parser.add_argument('--s', nargs=1, type=str, help='Kernel size (in pix) to use for Gaussian smoothing.')
+parser.add_argument('--s', nargs=1, type=str, default='3', help='Kernel size (in pix) to use for Gaussian smoothing.')
 args = parser.parse_args()
 fileslist = args.input
 
-fig, ax = plt.subplots(figsize=(10,5), dpi=72) 
-fig.subplots_adjust(wspace=0.25, left=0.1, right=0.95,
-                    bottom=0.125, top=0.925)
+fig, ax = plt.subplots(figsize=(15,5), dpi=72) 
+fig.subplots_adjust(wspace=0.25, left=0.05, right=0.95,
+                    bottom=0.125, top=0.9)
 
 current = 0
 cid = fig.canvas.mpl_connect('key_press_event', onkey)  #allows key presses to be read within the plotting window.

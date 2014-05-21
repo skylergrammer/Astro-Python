@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 #mod date: 2014-05-17
-#upload date:
+#upload date: dickbutt
 #version: 1.0
 
 import numpy as np

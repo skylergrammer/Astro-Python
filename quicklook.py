@@ -106,7 +106,7 @@ parser.add_argument('--s', nargs=1, type=str, default='3', help='Kernel size (in
 args = parser.parse_args()
 fileslist = args.input
 
-fig, ax = plt.subplots(figsize=(15,5), dpi=72) 
+fig, ax = plt.subplots(figsize=(15,7), dpi=72) 
 fig.subplots_adjust(wspace=0.25, left=0.05, right=0.95,
                     bottom=0.125, top=0.9)
 

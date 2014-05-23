@@ -139,7 +139,7 @@ def normSpectrum(xcoord, ycoord, header, niter=3, filter_size=50, trim=(100,100)
 
     # If interactive mode, ask user if fit is ok
     if interactive: 
-      plt.draw() 
+      plt.show() 
       proc = raw_input('Accept fit to continuum and proceed? (y,n,q): ')
     
       if proc.lower()[0] == 'y':
@@ -158,7 +158,7 @@ def normSpectrum(xcoord, ycoord, header, niter=3, filter_size=50, trim=(100,100)
               
         new_trim = raw_input('Trim %s: ' % ([x for x in trim])).split()
         
-        if new_trim: trim = tuple([int(x) for x in new_trim])
+        if new_trim: trim = tuple([int(x) if int(x) > 0 else 1 for x in new_trim])
         plt.clf()
       
       elif proc.lower()[0] == 'q': exit()
@@ -193,17 +193,25 @@ def main():
 
 
   for each in args.files:
-    # Get the un-normalized spectrum
-    wave, data, header = getSpectrum(each)
-
     print '\n\n##########Normalizing %s##########' % (each)
+
+    # Get the un-normalized spectrum
+    try: 
+      wave, data, header = getSpectrum(each)
+    except:
+      print 'ERROR -- Unable to read %s.' % (each)
+      continue 
     # Normalize that little bitch
     wave_norm, data_norm, header = normSpectrum(wave, data, header, niter=args.niter, filter_size=args.fs, trim=args.trim, interactive=args.i)
 
     # Write out normalized spectrum
-    pyfits.writeto('spec_'+header['object']+'_norm.fits',
-                   data_norm, header=header, clobber=args.clobber)
-    print 'Wrote: %s.' % ('spec_'+header['object']+'_norm.fits')
+    try:
+      pyfits.writeto('spec_'+header['object']+'_norm.fits',
+                     data_norm, header=header, clobber=args.clobber)
+      print 'Wrote: %s.' % ('spec_'+header['object']+'_norm.fits')
+    except:
+      print 'ERROR -- Unable to write %s.' % ('spec_'+header['object']+'_norm.fits')
+      continue
 
 if __name__ == '__main__':
   main()

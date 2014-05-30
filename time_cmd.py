@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 import argparse
+from matplotlib import animation
 
 
 def get_ref_data(filename):
@@ -43,6 +44,18 @@ def gen_lc(ref_data, sourceid, zps, dm, show="screen"):
   ref_line = [x for x in ref_data if sourceid in x]
   ref_line = ref_line[0]
 
+  if os.path.isfile(ref_line['lcU']) and os.path.isfile(ref_line['lcU']): 
+    header = ['mjd', 'dCounts', 'edCounts']
+    lcU = np.genfromtxt(ref_line['lcU'], usecols=[0,1,2], names=header)
+    lcU_m = convertMags((ref_line['magU'], ref_line['emagU']), sourceid, lcU, dm, 
+                       (zps['U'],zps['eU']))
+    
+    lcB = np.genfromtxt(ref_line['lcB'], usecols=[0,1,2], names=header)
+    lcB_m = convertMags((ref_line['magB'], ref_line['emagB']), sourceid, lcB, dm, 
+                       (zps['B'],zps['eB']))
+
+    plotTCMD(lcU_m, lcB_m, sourceid=sourceid, xlabel='$U-B$', ylabel='$B$')
+
   if os.path.isfile(ref_line['lcB']) and os.path.isfile(ref_line['lcV']): 
     header = ['mjd', 'dCounts', 'edCounts']
     lcB = np.genfromtxt(ref_line['lcB'], usecols=[0,1,2], names=header)
@@ -53,8 +66,32 @@ def gen_lc(ref_data, sourceid, zps, dm, show="screen"):
     lcV_m = convertMags((ref_line['magV'], ref_line['emagV']), sourceid, lcV, dm, 
                        (zps['V'],zps['eV']))
 
-    plotTCMD(lcB_m, lcV_m)
+    plotTCMD(lcB_m, lcV_m, sourceid=sourceid, xlabel='$B-V$', ylabel='$V$')
   
+  if os.path.isfile(ref_line['lcV']) and os.path.isfile(ref_line['lcR']): 
+    header = ['mjd', 'dCounts', 'edCounts']
+    lcV = np.genfromtxt(ref_line['lcV'], usecols=[0,1,2], names=header)
+    lcV_m = convertMags((ref_line['magV'], ref_line['emagV']), sourceid, lcV, dm, 
+                       (zps['V'],zps['eV']))
+    
+    lcR = np.genfromtxt(ref_line['lcR'], usecols=[0,1,2], names=header)
+    lcR_m = convertMags((ref_line['magR'], ref_line['emagR']), sourceid, lcR, dm, 
+                       (zps['R'],zps['eR']))
+
+    plotTCMD(lcV_m, lcR_m, sourceid=sourceid, xlabel='$V-R$', ylabel='$R$')
+
+  if os.path.isfile(ref_line['lcB']) and os.path.isfile(ref_line['lcR']): 
+    header = ['mjd', 'dCounts', 'edCounts']
+    lcV = np.genfromtxt(ref_line['lcB'], usecols=[0,1,2], names=header)
+    lcV_m = convertMags((ref_line['magB'], ref_line['emagB']), sourceid, lcB, dm, 
+                       (zps['B'],zps['eB']))
+    
+    lcR = np.genfromtxt(ref_line['lcR'], usecols=[0,1,2], names=header)
+    lcR_m = convertMags((ref_line['magR'], ref_line['emagR']), sourceid, lcR, dm, 
+                       (zps['R'],zps['eR']))
+
+    plotTCMD(lcV_m, lcR_m, sourceid=sourceid, xlabel='$B-R$', ylabel='$R$')
+
 
 def convertMags(ref_info, sourceid, lc, dm, zp_info):
   
@@ -73,28 +110,66 @@ def convertMags(ref_info, sourceid, lc, dm, zp_info):
   emag_i = [np.sqrt(Beta + (1.1*y/x)**2 + ezp**2) 
             for x,y in zip(counts_i,lc['edCounts'])]
 
-  return (np.array(lc['mjd']), np.array(mag_i), np.array(emag_i))
-
-
-def plotTCMD(lc1, lc2):
-
-  fig, ax = plt.subplots(figsize=(14,8), dpi=72)
-  fig.subplots_adjust(wspace=0, left=0.125, right=0.98,
-                        bottom=0.125, top=0.925)
-  t1, m1, em1 = lc1
-  t2, m2, em2 = lc2
-
-  exit()
-  for each in t1: print each, np.round(each, 1)
-  print '           '  
-  for each in t2: print each, np.round(each, 1)
-  exit()
-  plt.plot(m1-m2, m2, 'k')
-  plt.ylim(max(m2), min(m2))
-  plt.show()
-
+  result = zip(lc['mjd'], mag_i, emag_i)
   
- 
+  return result
+
+
+def plotTCMD(lc1, lc2, sourceid=[], xlabel='', ylabel=''):
+
+  t1, m1, em1 = zip(*lc1)
+  t2, m2, em2 = zip(*lc2)
+
+  t1_crop, m1_crop, em1_crop = zip(*[(t,m,e) for t,m,e in lc1 if np.round(t,1) in np.round(t2,1)])
+  t2_crop, m2_crop, em2_crop = zip(*[(t,m,e) for t,m,e in lc2 if np.round(t,1) in np.round(t1,1)])
+  
+  mcol_i = [x-y for x,y in zip(m1_crop, m2_crop)]
+  emcol_i = [np.sqrt(x**2 + y**2) for x,y in zip(em1_crop, em2_crop)]
+  
+  fig = plt.figure(figsize=(8.5,11), dpi=72)
+  fig.subplots_adjust(wspace=0, left=0.15, right=0.95,
+                          bottom=0.125, top=0.95)
+  ax = plt.axes(xlim=(min(mcol_i)-0.1, max(mcol_i)+0.1), 
+                ylim=(max(m2_crop)+5*np.max(em2_crop), min(m2_crop)-5*max(em2_crop)))
+  
+  xmajorLocator = MultipleLocator(0.1)
+  xminorLocator = MultipleLocator(0.05)
+  ymajorLocator = MultipleLocator(0.1)
+  yminorLocator = MultipleLocator(0.05)
+
+  ax.xaxis.set_major_locator(xmajorLocator)
+  ax.xaxis.set_minor_locator(xminorLocator)
+  ax.yaxis.set_major_locator(ymajorLocator)
+  ax.yaxis.set_minor_locator(yminorLocator)
+  
+  plt.grid(b=True, which='minor', ls=':')
+
+  ax.tick_params(axis='both', which='both', labelsize=18)
+  ax.ticklabel_format(style='plain', axis='both', useOffset=True) 
+  
+  plt.xlabel(xlabel, fontsize=30)
+  plt.ylabel(ylabel, fontsize=30)
+
+  line, = ax.plot([], [], 'ko', ms=8, lw=3, ls=':')
+
+  def init():
+    line.set_data([], [])
+    return line,
+
+  def animate(i):
+
+    x = np.array(mcol_i[:i])
+    y = np.array(m2_crop[:i])
+    line.set_data(x, y)
+    return line,
+
+  anim = animation.FuncAnimation(fig, animate, init_func=init,
+           frames=len(m2_crop), interval=50, blit=True)
+  
+  filename = '_'.join(['tCMD',sourceid,xlabel.strip('$')])
+  
+  anim.save(''.join([filename,'.gif']), writer='imagemagick', fps=4)
+
   
 def main():
 
@@ -130,7 +205,7 @@ def main():
            'R':8.78, 'eR':0.01}
 
   #Retrieves the reference data
-  ref_data =  get_ref_data(args.ref)  #read the ref file
+  ref_data =  get_ref_data(args.ref) 
 
   #Lists all the source IDs in the reference data
   if args.id.lower() == "list": 

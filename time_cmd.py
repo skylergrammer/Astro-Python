@@ -164,10 +164,11 @@ def plotTCMD(lc1, lc2, sourceid=[], xlabel='', ylabel=''):
     return line,
 
   anim = animation.FuncAnimation(fig, animate, init_func=init,
-           frames=len(m2_crop), interval=50, blit=True)
+           frames=len(m2_crop), interval=50, blit=False)
   
   filename = '_'.join(['tCMD',sourceid,xlabel.strip('$')])
-  
+  plt.show()
+
   anim.save(''.join([filename,'.gif']), writer='imagemagick', fps=4)
 
   
@@ -176,7 +177,7 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('ref', metavar='reference_file')
   parser.add_argument('--chip', choices=['1','2','3','4'], required=True, help='The chip number.  This is important for determining the photometric zeropoints.')
-  parser.add_argument('--id', type=str,  help='Options: single source id or "list". "list" will list all the sources, then quit".')
+  parser.add_argument('--id', type=str, help='Options: single source id or "list". "list" will list all the sources, then quit".')
   parser.add_argument('--dm', type=float, help='Distance modulus.  Default is set to 29.05 (M101).')  
   parser.add_argument('--show', choices=["screen", "pdf", "png", "jpg"], default="screen" , help='How the light curve will be viewed.')
 
@@ -208,9 +209,12 @@ def main():
   ref_data =  get_ref_data(args.ref) 
 
   #Lists all the source IDs in the reference data
-  if args.id.lower() == "list": 
+  if args.id[0].lower() == "list": 
     for line in ref_data['id']: print line
     exit()
+  if args.id == 'all':
+    for each in ref_data['id']:
+      gen_lc(ref_data, each, zps, args.dm, show=args.show)
   else:
     gen_lc(ref_data, args.id, zps, args.dm, show=args.show)
 

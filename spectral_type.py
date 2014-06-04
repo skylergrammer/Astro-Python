@@ -6,7 +6,6 @@ import pyfits
 import argparse
 from scipy.ndimage.filters import *
 from scipy.interpolate import *
-from PyAstronomy import pyasl
 from scipy.signal import correlate
 import os
 
@@ -17,8 +16,8 @@ def readSpectrum(filename, wave_range):
   data, header = pyfits.getdata(filename, header=True)
   
   # Smooth the input data with a 3pixel sigma guassian filter  
-  data_smooth = gaussian_filter1d(data[0], 5)
-
+  data_smooth = gaussian_filter1d(data[0], 2)
+  data_smooth_super = gaussian_filter(data[0], 50)
   # Convert pixels to wavelengths
   lambda1 = header['crval1']
   lambda2 = float(header['naxis1'])*header['cdelt1']+float(header['crval1'])
@@ -28,7 +27,7 @@ def readSpectrum(filename, wave_range):
   wave = wave[:len(data_smooth)]
 
   # Normalize to the flux at 5556A
-  flux_5556 = data_smooth[np.argmin(np.abs(wave - 5556.0))]
+  flux_5556 = data_smooth_super[np.argmin(np.abs(wave - 5556.0))]
   
   # Normalize and return only wavelengths in range
   norm_chop = [(x,y/flux_5556) for x,y in zip(wave,data_smooth) 
@@ -52,7 +51,7 @@ def readStandard(filename, wave_range):
   wave, spec = zip(*trim_data)
 
   # Name of file returns spectral type
-  name = filename.split('/')[-1].strip('.dat')
+  name = filename.split('/')[-1].replace('.dat','')
   
   return (wave, spec, name)
 
@@ -67,53 +66,88 @@ class Spectrum:
     self.spectrum = np.array(spectrum)
 
 
-def xcorrelate(science, standard):
-
-  new_wave = np.linspace(min(science.wave), max(science.wave), num=len(standard.wave))
-
-  new_spec = griddata(science.wave, science.spectrum, list(new_wave))
-
-
-def main():
-
-  parser = argparse.ArgumentParser()
+def onkey(event):
+  global current
   
-  parser.add_argument('spectrum')
-  parser.add_argument('standards', nargs='+')
-  parser.add_argument('--r', nargs=2, type=int, required=True)
-  
-  args = parser.parse_args()
-  
-  # Read in science spectrum
-  wave_star, spec_star, header_star = readSpectrum(args.spectrum, args.r) 
-  
-  science = Spectrum(wave_star, spec_star, header_star['object'])
+  # Move forwards
+  if event.key == 'right' and len(all_stds) >= 2:
+    fig.clf()
+    if current == len(all_stds)-1: 
+      current = 0
+    else: 
+      current += 1
+    plt.plot(science.wave, science.spectrum, 'k', lw=2)
+    plt.plot(all_stds[current].wave, all_stds[current].spectrum, 'r', label=all_stds[current].name)
+    plt.ylim(min(science.spectrum), 2*np.mean(science.spectrum))
+    plt.xlim(args.r[0], args.r[1])
+    plt.legend(frameon=False, fontsize=24)    
+    fig.canvas.draw()
 
+  # Move backwards
+  if event.key == 'left' and len(all_stds) >= 2:
+    fig.clf()
+    if current == 0: 
+      current = len(all_stds)-1
+    else: 
+      current -= 1
+    plt.plot(science.wave, science.spectrum, 'k', lw=2)
+    plt.plot(all_stds[current].wave, all_stds[current].spectrum, 'r', label=all_stds[current].name)
+    plt.ylim(min(science.spectrum), 2*np.mean(science.spectrum))
+    plt.xlim(args.r[0], args.r[1])
+    plt.legend(frameon=False, fontsize=24)
+    fig.canvas.draw()
+ 
+  # Allows user to delete models with key 'd'
+  if event.key == 'd' and len(all_stds) >= 2:
+    fig.clf()
+    all_stds.pop(current)
+    if current == len(all_stds):
+      current = 0
+    plt.plot(science.wave, science.spectrum, 'k', lw=2)
+    plt.plot(all_stds[current].wave, all_stds[current].spectrum, 'r', label=all_stds[current].name)
+    plt.ylim(min(science.spectrum), 2*np.mean(science.spectrum))
+    plt.xlim(args.r[0], args.r[1])
+    plt.legend(frameon=False, fontsize=24)
+    fig.canvas.draw()
 
-  # Read in all the standard spectra
-  all_stds = {}
-  
-  for each in args.standards:
-    # Read standard spectrum
+  # 'q' equals quit
+  if event.key.lower() == 'q': exit()
+
+###MAIN():###
+parser = argparse.ArgumentParser()
+parser.add_argument('spectrum')
+parser.add_argument('standards', nargs='+')
+parser.add_argument('--r', nargs=2, type=int, required=True)
+
+args = parser.parse_args()
+
+# Read in science spectrum
+wave_star, spec_star, header_star = readSpectrum(args.spectrum, args.r) 
+
+science = Spectrum(wave_star, spec_star, header_star['object'])
+
+# Read in all the standard spectra
+all_stds = []
+
+for each in args.standards:
+  # Read standard spectrum
+  try:
     wave_std, spec_std, name = readStandard(each, args.r)
-
     # Put data into Standard object
     std = Spectrum(wave_std, spec_std, name)
-   
     # Append standard object to the dictionary of standards
-    all_stds[std.name] = std
+    all_stds.append(std)
+  except:
+    continue
 
-  
-  for each in all_stds: 
-    fig,ax = plt.subplots(figsize=(15,10), dpi=72) 
-    fig.subplots_adjust(wspace=0.25, left=0.05, right=0.95,
-                        bottom=0.125, top=0.9)
-    plt.plot(science.wave, science.spectrum, 'k', lw=2)
-    plt.plot(all_stds[each].wave, all_stds[each].spectrum, 'r', label=each)
-    plt.legend()
-    plt.show()
-    output = xcorrelate(science, all_stds[each])
-
-
-if __name__ == '__main__':
-  main()
+current = 0
+fig,ax = plt.subplots(figsize=(15,10), dpi=72) 
+fig.subplots_adjust(wspace=0.25, left=0.05, right=0.95,
+                    bottom=0.125, top=0.9)
+plt.xlim(args.r[0], args.r[1])
+plt.ylim(min(science.spectrum), 2*np.mean(science.spectrum))
+cid = fig.canvas.mpl_connect('key_press_event', onkey)
+plt.plot(science.wave, science.spectrum, 'k', lw=2)
+plt.plot(all_stds[current].wave, all_stds[current].spectrum, 'r', label=all_stds[current].name)
+plt.legend(frameon=False, fontsize=24)
+plt.show()

@@ -16,7 +16,7 @@ def readSpectrum(filename, wave_range):
   data, header = pyfits.getdata(filename, header=True)
   
   # Smooth the input data with a 3pixel sigma guassian filter  
-  data_smooth = gaussian_filter1d(data[0], 2)
+  data_smooth = gaussian_filter1d(data[0], 5)
   data_smooth_super = gaussian_filter(data[0], 50)
   # Convert pixels to wavelengths
   lambda1 = header['crval1']

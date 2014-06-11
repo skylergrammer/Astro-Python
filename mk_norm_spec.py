@@ -164,6 +164,10 @@ def normSpectrum(xcoord, ycoord, header, niter=3, filter_size=50, trim=(100,100)
       elif proc.lower()[0] == 'q': exit()
     
     else:
+      plt.savefig('spec_'+header['object']+'_ContFit.pdf', 
+                  dpi=None, facecolor='w', edgecolor='w',
+                  transparent=True, bbox_inches=None, pad_inches=0.1,
+                  frameon=None)
       reit = 'n'
 
   #Create the normalized spectrum and gaussian filter it a lil bit

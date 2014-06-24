@@ -17,10 +17,12 @@ def readSpectrum(filename, wave_range, velocity, gaus_sig=2):
 
   # Retrieve data
   data, header = pyfits.getdata(filename, header=True)
-  
+  if len(data) != int(header['naxis1']): data = data[0]
+
   # Smooth the input data with a 3pixel sigma guassian filter  
-  data_smooth = gaussian_filter1d(data[0], gaus_sig)
-  data_smooth_super = gaussian_filter(data[0], 50)
+  data_smooth = gaussian_filter1d(data, gaus_sig)
+  data_smooth_super = gaussian_filter(data, 50)
+
   # Convert pixels to wavelengths
   lambda1 = header['crval1']
   lambda2 = float(header['naxis1'])*header['cdelt1']+float(header['crval1'])
@@ -85,7 +87,7 @@ def onkey(event):
       current += 1
     plt.plot(science.wave, science.spectrum, 'k', lw=2)
     plt.plot(all_stds[current].wave, all_stds[current].spectrum, 'r', label=all_stds[current].name)
-    plt.ylim(min(science.spectrum), 2*np.mean(science.spectrum))
+    plt.ylim(min(science.spectrum), 3*np.mean(science.spectrum))
     plt.xlim(args.r[0], args.r[1])
     plt.legend(frameon=False, fontsize=24)    
     fig.canvas.draw()
@@ -99,7 +101,7 @@ def onkey(event):
       current -= 1
     plt.plot(science.wave, science.spectrum, 'k', lw=2)
     plt.plot(all_stds[current].wave, all_stds[current].spectrum, 'r', label=all_stds[current].name)
-    plt.ylim(min(science.spectrum), 2*np.mean(science.spectrum))
+    plt.ylim(min(science.spectrum), 3*np.mean(science.spectrum))
     plt.xlim(args.r[0], args.r[1])
     plt.legend(frameon=False, fontsize=24)
     fig.canvas.draw()
@@ -112,7 +114,7 @@ def onkey(event):
       current = 0
     plt.plot(science.wave, science.spectrum, 'k', lw=2)
     plt.plot(all_stds[current].wave, all_stds[current].spectrum, 'r', label=all_stds[current].name)
-    plt.ylim(min(science.spectrum), 2*np.mean(science.spectrum))
+    plt.ylim(min(science.spectrum), 3*np.mean(science.spectrum))
     plt.xlim(args.r[0], args.r[1])
     plt.legend(frameon=False, fontsize=24)
     fig.canvas.draw()
@@ -124,9 +126,9 @@ def onkey(event):
 parser = argparse.ArgumentParser()
 parser.add_argument('--spec')
 parser.add_argument('--stds', nargs='+')
-parser.add_argument('--r', nargs=2, type=int, default=(3900, 6000))
-parser.add_argument('--s', type=int, default=2)
-parser.add_argument('--v', type=float, default=0.0)
+parser.add_argument('--r', nargs=2, type=int, default=(3900, 6000), help='Wavelength range to fit.')
+parser.add_argument('--s', type=int, default=2, help'Gaussian smoothing filter in units of Angstroms.')
+parser.add_argument('--v', type=float, default=0.0, help='Velocity.')
 args = parser.parse_args()
 
 # Read in science spectrum
@@ -153,7 +155,7 @@ fig,ax = plt.subplots(figsize=(15,10), dpi=72)
 fig.subplots_adjust(wspace=0.25, left=0.05, right=0.95,
                     bottom=0.125, top=0.9)
 plt.xlim(args.r[0], args.r[1])
-plt.ylim(min(science.spectrum), 2*np.mean(science.spectrum))
+plt.ylim(min(science.spectrum), 3*np.mean(science.spectrum))
 cid = fig.canvas.mpl_connect('key_press_event', onkey)
 plt.plot(science.wave, science.spectrum, 'k', lw=2)
 plt.plot(all_stds[current].wave, all_stds[current].spectrum, 'r', label=all_stds[current].name)

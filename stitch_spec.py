@@ -6,10 +6,13 @@ import matplotlib.pyplot as plt
 import pyfits
 import argparse
 from scipy.ndimage.filters import gaussian_filter1d
+from scipy.interpolate import *
 
 
 def readSpectrum(filename):
-  
+  '''
+  Read in a spectrum.  Return wavelengths, intensities, and header.
+  '''
   data, header = pyfits.getdata(filename, header=True)
 
   lambda1 = header['crval1']
@@ -23,50 +26,116 @@ def readSpectrum(filename):
 
 
 def smoothSpec(spectrum):
-  
+  '''
+  Smooth the spectrum so that small oscillations do not affect offset between 
+  the overlapping regions.
+  '''
   smooth_spec = gaussian_filter1d(spectrum, 5)
 
   return smooth_spec
 
 
-def findMultiplier(wave1, spectrum1, wave2, spectrum2):
+def findOffset(wave1, spectrum1, wave2, spectrum2):
+  '''
+  Find the vertical offset between the overlapping regions in the two spectra.
+  '''
 
   bounds1 = (min(wave1), max(wave1))
   bounds2 = (min(wave2), max(wave2))
 
-  overlap1 = [y for x,y in zip(wave1, spectrum1) if x >= bounds2[0] and x <= bounds2[1]]
-  overlap2 = [y for x,y in zip(wave2, spectrum2) if x >= bounds1[0] and x <= bounds1[1]]
+  # Find overlapping regions
+  overlap1 = [y for x,y in zip(wave1, spectrum1) 
+              if x >= bounds2[0] and x <= bounds2[1]]
 
-  ratio = np.median(overlap1)/np.median(overlap2)
-  ratio = np.median(overlap1)-np.median(overlap2)
-  return ratio
+  overlap2 = [y for x,y in zip(wave2, spectrum2) 
+              if x >= bounds1[0] and x <= bounds1[1]]
+
+  # Find the offset between the mean values in the offset regions.
+  offset = np.median(overlap1)-np.median(overlap2)
+  
+  return offset
 
 
-def stitch(wave1, spectrum1, wave2, spectrum2):
+def interpSpec(wave, spectrum, grid=0.25):
+  '''
+  Interpolate the spectra to the same resolution.
+  '''
+  new_wave = np.arange(min(wave), max(wave), grid)
 
-  return
+  f = interp1d(wave, spectrum)
+
+  new_spec = f(new_wave)
+
+  return (new_wave, new_spec)
+
+
+def stitchSpectra(wave1, spectrum1, wave2, spectrum2, grid=0.25):
+  '''
+  Stitch together the two spectra.  Overlapping regions are mean combined.
+  '''
+  lo_wave = min([wave1[0], wave2[0]])
+  hi_wave = max([wave1[-1], wave2[-1]])
+
+  all_wave = np.arange(lo_wave, hi_wave, grid)
+
+  waves = np.array(list(wave1) + list(wave2))
+  spec = np.array(list(spectrum1) + list(spectrum2))
+
+  stitch_spec = np.array([np.mean(spec[np.where(waves == x)]) for x in all_wave])
+
+  return (all_wave, stitch_spec)
+  
+
+def writeSpectrum(wave, spectrum, header, grid=0.25):
+  '''
+  Write out the stitched spectrum to a fits file.  Keeps the header of one 
+  spectrum.  Updates crval1 and cdelt1
+  '''
+  header.update(CRVAL1=min(wave))
+  header.update(CDELT1=grid)
+  
+  pyfits.writeto('spec_'+header['object']+'.fits', spectrum, header=header)
+
+
 def main():
 
-  parser = argparse.ArgumentParser()
-  parser.add_argument('spec1')
-  parser.add_argument('spec2')
-
+  parser = argparse.ArgumentParser(description='Stitches together two overlapping \
+                                   spectra.  Use this program if the overlapping \
+                                   region is small compared to the full wavelength \
+                                   range.')
+  parser.add_argument('spec1', help='Filename for spectrum 1.')
+  parser.add_argument('spec2', help='Filename for spectrum 2.')
   args = parser.parse_args()
 
+
+  # Read in spectrum 1 and then smooth it
   wave1, spectrum1, header1 = readSpectrum(args.spec1)
   smooth_spectrum1 = smoothSpec(spectrum1)
-
+  
+  # Read in spectrum 2 and then smooth it
   wave2, spectrum2, header2 = readSpectrum(args.spec2)
   smooth_spectrum2 = smoothSpec(spectrum2)
 
-  ratio = findMultiplier(wave1, smooth_spectrum1, wave2, smooth_spectrum2)
+  # Determine the vertical offset between the overlapping regions
+  offset = findOffset(wave1, smooth_spectrum1, wave2, smooth_spectrum2)
 
-  scaled_spectrum1 = smooth_spectrum1-ratio
+  # Subtract the offset between overlapping region
+  mod_spectrum1 = spectrum1-offset
   
-  plt.plot(wave1, scaled_spectrum1, 'k')
-  plt.plot(wave2, smooth_spectrum2, 'r')
-  plt.xlim(3500, 8500)
-  plt.show()
+  # Determine the interpolation resolution: uses the highest resolution between the spectra
+  interp_bin = np.round(min([header1['cdelt1'], header1['cdelt1']]),1)
+ 
+  # Interpolate both spectra to the same resolution
+  interp_wave1, interp_spectrum1 = interpSpec(wave1, mod_spectrum1, grid=interp_bin)
+  interp_wave2, interp_spectrum2 = interpSpec(wave2, spectrum2, grid=interp_bin)
+
+  # Stitch together the spectra
+  x,y = stitchSpectra(interp_wave1, interp_spectrum1, 
+                      interp_wave2, interp_spectrum2, grid=interp_bin) 
+
+  # Write stitched spectrum to file
+  writeSpectrum(x,y, header1, grid=interp_bin)
+
 
 if __name__ == '__main__':
   main()

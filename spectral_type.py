@@ -8,22 +8,29 @@ from scipy.ndimage.filters import *
 from scipy.interpolate import *
 from scipy.signal import correlate
 import os
+from scipy.constants import *
 
+def readSpectrum(filename, wave_range, velocity, gaus_sig=2):
 
-def readSpectrum(filename, wave_range):
+  # Convert km/s to m/s
+  velocity = velocity * 1000  
 
   # Retrieve data
   data, header = pyfits.getdata(filename, header=True)
   
   # Smooth the input data with a 3pixel sigma guassian filter  
-  data_smooth = gaussian_filter1d(data[0], 5)
+  data_smooth = gaussian_filter1d(data[0], gaus_sig)
   data_smooth_super = gaussian_filter(data[0], 50)
   # Convert pixels to wavelengths
   lambda1 = header['crval1']
   lambda2 = float(header['naxis1'])*header['cdelt1']+float(header['crval1'])
   
   # Convert pixels to angstroms
-  wave = np.arange(lambda1, lambda2, header['cdelt1'])
+  raw_wave = np.arange(lambda1, lambda2, header['cdelt1'])
+
+  # Apply a velocity
+  offset = lambda v,x0: v*np.array(x0)/c  
+  wave = raw_wave + offset(velocity, raw_wave)
   wave = wave[:len(data_smooth)]
 
   # Normalize to the flux at 5556A
@@ -115,21 +122,22 @@ def onkey(event):
 
 ###MAIN():###
 parser = argparse.ArgumentParser()
-parser.add_argument('spectrum')
-parser.add_argument('standards', nargs='+')
-parser.add_argument('--r', nargs=2, type=int, required=True)
-
+parser.add_argument('--spec')
+parser.add_argument('--stds', nargs='+')
+parser.add_argument('--r', nargs=2, type=int, default=(3900, 6000))
+parser.add_argument('--s', type=int, default=2)
+parser.add_argument('--v', type=float, default=0.0)
 args = parser.parse_args()
 
 # Read in science spectrum
-wave_star, spec_star, header_star = readSpectrum(args.spectrum, args.r) 
+wave_star, spec_star, header_star = readSpectrum(args.spec, args.r, args.v, gaus_sig=args.s) 
 
 science = Spectrum(wave_star, spec_star, header_star['object'])
 
 # Read in all the standard spectra
 all_stds = []
 
-for each in args.standards:
+for each in args.stds:
   # Read standard spectrum
   try:
     wave_std, spec_std, name = readStandard(each, args.r)

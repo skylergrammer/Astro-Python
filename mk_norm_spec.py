@@ -189,7 +189,7 @@ def main():
   parser = argparse.ArgumentParser(description='Take a 1D, single-extension spectrum and normalize it.')
   parser.add_argument('files', nargs='+', help='File(s) to normalize.')
   parser.add_argument('--niter', metavar='niter', type=int, default=3, help='Number of iterations to perform.')
-  parser.add_argument('--i', metavar='Interactive', default=False, help='If set, will allow you to interactively change parameters.')
+  parser.add_argument('--i', action='store_true', default=False, help='If set, will allow you to interactively change parameters.')
   parser.add_argument('--fs', metavar='Size', type=int, default=100, help='Filter size in Angstroms.')
   parser.add_argument('--trim', metavar=('Left','Right'), nargs=2, type=int, default=(10,10), help='Amount to be trimmed off from the edges') 
   parser.add_argument('--clobber', action='store_true', default=False, help='If set, will clobber if necessary.')

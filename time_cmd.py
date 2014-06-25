@@ -178,7 +178,7 @@ def main():
   parser.add_argument('ref', metavar='reference_file')
   parser.add_argument('--chip', choices=['1','2','3','4'], required=True, help='The chip number.  This is important for determining the photometric zeropoints.')
   parser.add_argument('--id', type=str, help='Options: single source id or "list". "list" will list all the sources, then quit".')
-  parser.add_argument('--dm', type=float, help='Distance modulus.  Default is set to 29.05 (M101).')  
+  parser.add_argument('--dm', type=float, default=29.05, help='Distance modulus.  Default is set to 29.05 (M101).')  
   parser.add_argument('--show', choices=["screen", "pdf", "png", "jpg"], default="screen" , help='How the light curve will be viewed.')
 
   args = parser.parse_args()
@@ -209,8 +209,9 @@ def main():
   ref_data =  get_ref_data(args.ref) 
 
   #Lists all the source IDs in the reference data
-  if args.id[0].lower() == "list": 
-    for line in ref_data['id']: print line
+  if args.id.lower() == "list": 
+    for line in ref_data: 
+      print line['id'], line['magU']+args.dm, line['magB']+args.dm, line['magV']+args.dm, line['magR']+args.dm
     exit()
   if args.id == 'all':
     for each in ref_data['id']:

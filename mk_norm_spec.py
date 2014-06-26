@@ -184,6 +184,16 @@ def normSpectrum(xcoord, ycoord, header, niter=3, filter_size=50, trim=(100,100)
   
   return (xcoord_crop, norm_spec, header)
   
+def basicNorm(wave, data, header, band):
+
+    if band == 'blue': 
+      median_value = np.median(data[-100:-1])
+    if band == 'red':
+      median_value = np.median(data[0:100])
+
+    data_norm = data / median_value
+
+    return (wave, data_norm, header)
 def main():
 
   parser = argparse.ArgumentParser(description='Take a 1D, single-extension spectrum and normalize it.')
@@ -193,6 +203,7 @@ def main():
   parser.add_argument('--fs', metavar='Size', type=int, default=100, help='Filter size in Angstroms.')
   parser.add_argument('--trim', metavar=('Left','Right'), nargs=2, type=int, default=(10,10), help='Amount to be trimmed off from the edges') 
   parser.add_argument('--clobber', action='store_true', default=False, help='If set, will clobber if necessary.')
+  parser.add_argument('--bnorm', choices=['blue','red'], help='If set, just normalizes the spectrum to the median value of the spectrum.')
   args = parser.parse_args()
 
 
@@ -206,13 +217,19 @@ def main():
       print 'ERROR -- Unable to read %s.' % (each)
       continue 
     # Normalize that little bitch
-    wave_norm, data_norm, header = normSpectrum(wave, data, header, niter=args.niter, filter_size=args.fs, trim=args.trim, interactive=args.i)
-
+    if args.bnorm:
+      print 'BASIC'
+      wave_norm, data_norm, header = basicNorm(wave, data, header, args.bnorm)
+    else:
+      print 'NOT BASIC'
+      wave_norm, data_norm, header = normSpectrum(wave, data, header, niter=args.niter,
+                                                    filter_size=args.fs, trim=args.trim,
+                                                    interactive=args.i)
     # Write out normalized spectrum
     try:
       pyfits.writeto('spec_'+header['object']+'_norm.fits',
                      data_norm, header=header, clobber=args.clobber)
-      print 'Wrote: %s.' % ('spec_'+header['object']+'_norm.fits')
+      print 'Wrote: %s' % ('spec_'+header['object']+'_norm.fits')
     except:
       print 'ERROR -- Unable to write %s.' % ('spec_'+header['object']+'_norm.fits')
       continue

@@ -108,10 +108,10 @@ def run(filename1, filename2):
   wave2, spectrum2, header2 = readSpectrum(filename2)
   smooth_spectrum2 = smoothSpec(spectrum2)
 
-  plt.plot(wave1, smooth_spectrum1, 'k')
-  plt.plot(wave2, smooth_spectrum2, 'r')
-  plt.xlim(3500, 8500)
-  plt.show()
+  #plt.plot(wave1, smooth_spectrum1, 'k')
+  #plt.plot(wave2, smooth_spectrum2, 'r')
+  #plt.xlim(3500, 8500)
+  #plt.show()
 
   # Verify that the two spectra are the same object
   if header1['object'] != header2['object']:
@@ -158,7 +158,10 @@ def main():
     for line in f:
       blue, red = line.split()
       print 'Combining %s with %s' % (blue, red)
-      run(blue, red)
+      try:
+        run(blue, red)
+      except:
+        continue
   else:
     run(args.blue, args.red)
   

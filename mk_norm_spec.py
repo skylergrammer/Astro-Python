@@ -187,9 +187,9 @@ def normSpectrum(xcoord, ycoord, header, niter=3, filter_size=50, trim=(100,100)
 def basicNorm(wave, data, header, band):
 
     if band == 'blue': 
-      median_value = np.median(data[-100:-1])
+      median_value = np.abs(np.median(data[-100:-1]))
     if band == 'red':
-      median_value = np.median(data[0:100])
+      median_value = np.abs(np.median(data[0:100]))
 
     data_norm = data / median_value
 

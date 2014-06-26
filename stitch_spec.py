@@ -138,6 +138,7 @@ def main():
       except:
         print '\nERROR: Cannot combine %s with %s.\n' % (blue, red)
   else:
+    print 'Combining %s with %s.' % (args.blue, args.red)
     run(args.blue, args.red)
   
 

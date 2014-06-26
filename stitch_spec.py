@@ -36,33 +36,12 @@ def smoothSpec(spectrum):
   return smooth_spec
 
 
-def findOffset(wave1, spectrum1, wave2, spectrum2):
-  '''
-  Find the vertical offset between the overlapping regions in the two spectra.
-  '''
-
-  bounds1 = (min(wave1), max(wave1))
-  bounds2 = (min(wave2), max(wave2))
-
-  # Find overlapping regions
-  overlap1 = [y for x,y in zip(wave1, spectrum1) 
-              if x >= bounds2[0] and x <= bounds2[1]]
-
-  overlap2 = [y for x,y in zip(wave2, spectrum2) 
-              if x >= bounds1[0] and x <= bounds1[1]]
-
-  # Find the offset between the mean values in the offset regions.
-  offset = np.median(overlap1)-np.median(overlap2)
-  
-  return offset
-
-
 def interpSpec(wave, spectrum, grid=0.25):
   '''
   Interpolate the spectra to the same resolution.
   '''
-  new_wave = np.arange(min(wave), max(wave), grid)
-
+  new_wave = np.arange(np.ceil(min(wave)), np.floor(max(wave)), grid)
+  
   f = interp1d(wave, spectrum)
 
   new_spec = f(new_wave)
@@ -81,10 +60,19 @@ def stitchSpectra(wave1, spectrum1, wave2, spectrum2, grid=0.25):
 
   waves = np.array(list(wave1) + list(wave2))
   spec = np.array(list(spectrum1) + list(spectrum2))
+ 
+  stitch_spec = []
 
-  #stitch_spec = np.array([np.mean(spec[np.where(waves == x)]) for x in all_wave])
+  for each in all_wave:
+    x = np.where(waves == each)
+    # If there are matching wavelengths, fill with mean value
+    if x[0].any():
+      stitch_spec.append(np.mean(spec[x]))
+    # If not, just give it a 1.0
+    else:
+      stitch_spec.append(1.0)
 
-  return (waves, spec)
+  return (all_wave, np.array(stitch_spec))
   
 
 def writeSpectrum(wave, spectrum, header, grid=0.25):
@@ -108,21 +96,10 @@ def run(filename1, filename2):
   wave2, spectrum2, header2 = readSpectrum(filename2)
   smooth_spectrum2 = smoothSpec(spectrum2)
 
-  #plt.plot(wave1, smooth_spectrum1, 'k')
-  #plt.plot(wave2, smooth_spectrum2, 'r')
-  #plt.xlim(3500, 8500)
-  #plt.show()
-
   # Verify that the two spectra are the same object
   if header1['object'] != header2['object']:
     sys.exit('ERROR: Input spectra are not the same object!')
 
-  # Determine the vertical offset between the overlapping regions
-  #offset = findOffset(wave1, smooth_spectrum1, wave2, smooth_spectrum2)
-
-  # Subtract the offset between overlapping region
-  #mod_spectrum2 = np.array(spectrum2)+offset
-  
   # Determine the interpolation resolution: uses the highest resolution between the spectra
   interp_bin = np.round(min([header1['cdelt1'], header1['cdelt1']]),1)
  
@@ -138,30 +115,28 @@ def run(filename1, filename2):
   try:
     writeSpectrum(x,y, header1, grid=interp_bin)
   except:
-    sys.exit('Cannot write to file.  Verify that output filename does not already exist.')
+    sys.exit('\nERROR: Cannot write to file.  Verify that output filename does not already exist.\n')
 
 
 def main():
 
-  parser = argparse.ArgumentParser(description='Stitches together two overlapping \
-                                   spectra.  Use this program if the overlapping \
-                                   region is small compared to the full wavelength \
-                                   range.')
+  parser = argparse.ArgumentParser(description='Stitches together two normalized spectra.')
   parser.add_argument('--blue', help='Filename for blue spectrum.')
   parser.add_argument('--red', help='Filename for red spectrum.')
-  parser.add_argument('--list', help='Two-column list of spectra to be combined. \
-                                     Each row must correspond to a single object')
+  parser.add_argument('--list', help='Two-column list of spectra to be combined.  Each row must correspond to a single object')
   args = parser.parse_args()
 
   if args.list:
     f = open(args.list, 'r')
     for line in f:
       blue, red = line.split()
-      print 'Combining %s with %s' % (blue, red)
-      try:
+      
+      print 'Combining %s with %s.' % (blue, red)
+      try:      
         run(blue, red)
+
       except:
-        continue
+        print '\nERROR: Cannot combine %s with %s.\n' % (blue, red)
   else:
     run(args.blue, args.red)
   

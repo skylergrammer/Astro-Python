@@ -32,14 +32,21 @@ def getSpectrum(filename):
   # Retrieve data
   data, header = pyfits.getdata(filename, header=True)
 
+  if len(data) != int(header['naxis1']): data = data[0]
+
   # Convert pixels to wavelengths
   lambda1 = header['crval1']
   lambda2 = float(header['naxis1'])*header['cdelt1']+float(header['crval1'])
   
   wave = np.arange(lambda1, lambda2, header['cdelt1'])
-  wave = wave[:len(data[0])]
-  
-  return (wave, data[0], header)
+  wave = wave[:len(data)]
+
+  negative_vals = [x for x in data if x < 0]
+  if negative_vals: 
+    print 'Added to spectrum.'    
+    data = data + max(data)
+
+  return (wave, data, header)
 
 
 def normSpectrum(xcoord, ycoord, header, niter=3, filter_size=50, trim=(100,100), interactive=False):
@@ -131,7 +138,7 @@ def normSpectrum(xcoord, ycoord, header, niter=3, filter_size=50, trim=(100,100)
     plt.plot(xcoord, ycoord_smooth, 'g', lw=2, label='Smoothed Spectrum')
     plt.plot(xcoord_crop, yn, 'r', lw=2, label='Best Fit Continuum')
     plt.xlim(min(xcoord), max(xcoord))
-    plt.ylim(0, 2*max(yn))
+    plt.ylim(min(yn), 2*max(yn))
     plt.xlabel('$\lambda$', fontsize=30)
     plt.legend(frameon=False, fontsize=12)
     plt.tick_params(axis='both', which='both', labelsize=22)

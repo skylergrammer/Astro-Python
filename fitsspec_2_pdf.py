@@ -44,9 +44,9 @@ def plotSpec(wave, data, header, bounds, fig, ax, number):
   # x and y limits
 
   if max_y > median_y+4*std_y:
-    ax[number].set_ylim(min_y, 2*np.abs(median_y))
+    ax[number].set_ylim(min_y, 3*np.abs(median_y))
   else:
-    ax[number].set_ylim(min_y, max_y)
+    ax[number].set_ylim(min_y, 1.5*max_y)
   
   ax[number].set_xlim(bounds[0], bounds[1])
   
@@ -55,6 +55,7 @@ def main():
 
   parser = argparse.ArgumentParser()
   parser.add_argument('input', nargs='+')
+  parser.add_argument('--l', action='store_true')
   parser.add_argument('--bounds', metavar=('Blue','Red'), nargs=2, type=float, required=True)
   parser.add_argument('--smooth', type=int, default=2)
   parser.add_argument('--ydim', metavar='Rows', type=int, default=1)
@@ -64,15 +65,20 @@ def main():
   xmajorLocator = MultipleLocator(500)
   xminorLocator = MultipleLocator(100)
 
+  if args.l:
+    file_list = open(args.input[0], 'r')
+  else:
+    file_list = args.list
+
   ax_count = 0
-  for each in args.input:
+  for each in file_list:
 
     # If restarting: initialize plot    
     if ax_count == 0:
       fig, ax = plt.subplots(nrows=args.ydim, ncols=1, sharex=True, sharey=False,
                              figsize=(15,2*args.ydim), dpi=72)
       fig.subplots_adjust(hspace=0, left=0.025, right=0.975,
-                          bottom=0.1, top=0.99)
+                          bottom=0.15, top=0.99)
       
     # Read in spectrum
     wave, data, header = getSpectrum(each)

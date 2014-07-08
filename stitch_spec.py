@@ -49,6 +49,27 @@ def interpSpec(wave, spectrum, grid=0.25):
   return (new_wave, new_spec)
 
 
+def getVertOffset(wave1, spectrum1, wave2, spectrum2):
+
+  bounds1 = [min(wave1), max(wave1)]
+  bounds2 = [min(wave2), max(wave2)]
+
+  overlap1 = np.where((wave1 >= bounds2[0]) & (wave1 <= bounds2[1]))
+  overlap2 = np.where((wave2 >= bounds1[0]) & (wave2 <= bounds1[1]))
+
+  if overlap1 and overlap2:
+  
+    med_val1 = np.median(spectrum1[overlap1])
+    med_val2 = np.median(spectrum2[overlap2])
+
+    vert_offset = med_val1 - med_val2
+
+  else:
+    vert_offset = 0.0
+
+  return vert_offset
+  
+
 def stitchSpectra(wave1, spectrum1, wave2, spectrum2, grid=0.25):
   '''
   Stitch together the two spectra.  Overlapping regions are mean combined.
@@ -70,7 +91,7 @@ def stitchSpectra(wave1, spectrum1, wave2, spectrum2, grid=0.25):
       stitch_spec.append(np.mean(spec[x]))
     # If not, just give it a 1.0
     else:
-      stitch_spec.append(1.0)
+      stitch_spec.append(0.0)
 
   return (all_wave, np.array(stitch_spec))
   
@@ -93,8 +114,14 @@ def run(filename1, filename2):
   smooth_spectrum1 = smoothSpec(spectrum1)
   
   # Read in spectrum 2 and then smooth it
-  wave2, spectrum2, header2 = readSpectrum(filename2)
-  smooth_spectrum2 = smoothSpec(spectrum2)
+  wave2, raw_spectrum2, header2 = readSpectrum(filename2)
+  smooth_spectrum2 = smoothSpec(raw_spectrum2)
+
+  # Determine vertical offset
+  vert_offset = getVertOffset(wave1, smooth_spectrum1, wave2, smooth_spectrum2)
+
+  # Apply vertical offset
+  spectrum2 = raw_spectrum2 + vert_offset
 
   # Verify that the two spectra are the same object
   if header1['object'] != header2['object']:
@@ -112,10 +139,8 @@ def run(filename1, filename2):
                       interp_wave2, interp_spectrum2, grid=interp_bin) 
 
   # Write stitched spectrum to file
-  try:
-    writeSpectrum(x,y, header1, grid=interp_bin)
-  except:
-    sys.exit('\nERROR: Cannot write to file.  Verify that output filename does not already exist.\n')
+  writeSpectrum(x,y, header1, grid=interp_bin)
+
 
 
 def main():
@@ -128,17 +153,12 @@ def main():
 
   if args.list:
     f = open(args.list, 'r')
+  
     for line in f:
-      blue, red = line.split()
-      
-      print 'Combining %s with %s.' % (blue, red)
-      try:      
-        run(blue, red)
+      blue, red = line.split()     
+      run(blue, red)
 
-      except:
-        print '\nERROR: Cannot combine %s with %s.\n' % (blue, red)
   else:
-    print 'Combining %s with %s.' % (args.blue, args.red)
     run(args.blue, args.red)
   
 

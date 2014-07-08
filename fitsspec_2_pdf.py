@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import argparse
 from scipy.ndimage.filters import *
 from matplotlib.ticker import MultipleLocator
-
+import sys
 
 def getSpectrum(filename):
 
@@ -70,8 +70,11 @@ def main():
   if args.l:
     file_list = open(args.input[0], 'r')
   else:
-    file_list = args.list
-
+    file_list = args.input
+    
+  if len(file_list) < 2:
+    sys.exit('Must have at least 2 spectra to plot.')      
+  
   ax_count = 0
   for each in file_list:
 

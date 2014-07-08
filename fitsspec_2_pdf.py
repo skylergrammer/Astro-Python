@@ -42,12 +42,14 @@ def plotSpec(wave, data, header, bounds, fig, ax, number):
   ax[number].plot(wave, data, 'k', lw=1, label=header['object'])
   
   # x and y limits
-
-  if max_y > median_y+4*std_y:
-    ax[number].set_ylim(min_y, 3*np.abs(median_y))
-  else:
-    ax[number].set_ylim(min_y, 1.5*max_y)
+  med_blue = np.median(data[0:100])
+  med_red = np.median(data[-100:-1])
   
+  if med_blue >= med_red:
+    ax[number].set_ylim(min_y, 2*med_blue)
+  else:
+    ax[number].set_ylim(min_y, 2*med_red)
+
   ax[number].set_xlim(bounds[0], bounds[1])
   
 

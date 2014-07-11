@@ -72,8 +72,8 @@ def main():
   else:
     file_list = args.input
     
-  if len(file_list) < 2:
-    sys.exit('Must have at least 2 spectra to plot.')      
+  #if len(file_list) < 2:
+  #  sys.exit('Must have at least 2 spectra to plot.')      
   
   ax_count = 0
   for each in file_list:

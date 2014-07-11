@@ -127,7 +127,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--spec')
 parser.add_argument('--stds', nargs='+')
 parser.add_argument('--r', nargs=2, type=int, default=(3900, 6000), help='Wavelength range to fit.')
-parser.add_argument('--s', type=int, default=2, help'Gaussian smoothing filter in units of Angstroms.')
+parser.add_argument('--s', type=int, default=2, help='Gaussian smoothing filter in units of Angstroms.')
 parser.add_argument('--v', type=float, default=0.0, help='Velocity.')
 args = parser.parse_args()
 

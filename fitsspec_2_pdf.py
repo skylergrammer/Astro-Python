@@ -64,8 +64,8 @@ def main():
 
   args = parser.parse_args()
 
-  xmajorLocator = MultipleLocator(500)
-  xminorLocator = MultipleLocator(100)
+  xmajorLocator = MultipleLocator(200)
+  xminorLocator = MultipleLocator(50)
 
   if args.l:
     file_list = open(args.input[0], 'r')
@@ -91,7 +91,7 @@ def main():
     smooved_data = smoov(data, args.smooth)
     # Plot spectrum
     plotSpec(wave, smooved_data, header, args.bounds, fig, ax, ax_count)
-    ax[ax_count].legend(frameon=False, loc='upper left', markerscale=None) 
+    ax[ax_count].legend(frameon=False, loc='upper right', markerscale=None, fontsize=22) 
     ax[ax_count].xaxis.set_major_locator(xmajorLocator)
     ax[ax_count].xaxis.set_minor_locator(xminorLocator)
 

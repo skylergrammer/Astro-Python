@@ -128,7 +128,7 @@ def plot_lc(ref_info, sourceid, lc, dm, zp_info, bandpass='V'):
   max_dev = np.abs(max(mag_i) - min(mag_i))
 
   # If the RMS magnitude is greater than the average photometric error, plot
-  if rms_mag >= 2*mean_error:
+  if rms_mag >= mean_error:
 
     #major x-axis interval set to 365 days
     xmajorLocator = MultipleLocator(365)

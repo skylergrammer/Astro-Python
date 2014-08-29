@@ -26,16 +26,17 @@ if broken_mods:
   exit(1)
 
 
-def plot_spectrum(spectrum, wave, header, color='r'):
+def plot_spectrum(spectrum, wave, header, color='k'):
  
-  plt.plot(wave,spectrum, ls='-', color=color)
+  plt.plot(wave,spectrum, ls='-', lw=1.5, color=color, label=header['object'])
   plt.xlim(min(wave),max(wave))
   plt.ylim(min(spectrum), max(spectrum))
-  plt.xlabel('$\lambda$ ($\AA$)', fontsize=24)
-  #plt.ylabel('Counts', fontsize=24)
-  plt.title(header['object'], fontsize=30)
- 
-  #plt.show()
+  plt.xlabel('$\lambda$ ($\AA$)', fontsize=30)
+  plt.tick_params(axis='x', which='both', labelsize=22)
+  plt.tick_params(axis='y', which='both', left='off',right='off', labelleft='off')
+
+  plt.legend(frameon=False, loc='upper right', markerscale=None, fontsize=22) 
+  plt.gca().xaxis.labelpad = 10
 
 
 def get_spectrum(filename):

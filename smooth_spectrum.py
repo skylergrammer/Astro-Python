@@ -62,11 +62,5 @@ def main():
 
     smoothed_spec_fn = write_spectrum(y_smooth, header, each)
 
-    print "Smoothed and wrote to file %s!\n" % (smoothed_spec_fn)
-
-    plt.plot(x, y, 'k')
-    plt.plot(x, y_smooth, 'r')
-    plt.show()
-
 if __name__ == "__main__":
   main()
